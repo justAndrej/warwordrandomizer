@@ -16,15 +16,15 @@ import java.util.Random;
 
 public class ActivityRW extends AppCompatActivity {
 
-    private TextFileHelper mTextFileHelper;
+    private static TextFileHelper mTextFileHelper;
     private Button mNewWordButton;
     private TextView mWordView;
     private static final int TOTAL_WORDS = 362632;
     private static final String TAG = "MainActivity";
     private static final String SAVED_WORDS = "SavedWords";
     private List<String> mWordList;
-    private boolean mDidntLoadFlag;
-    private GetRandomWord mGetRandomWord;
+    private fillWordList mFillWordList;
+    private setRandomWord mSetRandomWord;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +32,8 @@ public class ActivityRW extends AppCompatActivity {
         setContentView(R.layout.activity_rw);
         mTextFileHelper = new TextFileHelper();
         mWordList = new ArrayList<>();
-        mDidntLoadFlag = false;
-        mGetRandomWord = null;
+        mFillWordList = null;
+        mSetRandomWord = null;
         mNewWordButton = (Button)findViewById(R.id.button);
         mWordView = (TextView)findViewById(R.id.textView);
 
@@ -47,38 +47,55 @@ public class ActivityRW extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                if(mWordList.size() < 8) {
-                    GetRandomWord getRandomWord = getRandomWordInstance();
-                    if (getRandomWord != null) {
-                        getRandomWord.execute();
-                        if(mWordList.size() != 0){
-                            setFirstWordInList();
-                        } else {
-                            mDidntLoadFlag = true;
-                        }
+                    fillWordList fillWordList = getFillWordListInstance();
+                    if (fillWordList != null) {
+                        fillWordList.execute();
                     }
-                } else {
-                    setFirstWordInList();
-                }
+                    if (mWordList.size() == 0){
+                        mSetRandomWord = getSetRandomWordInstance();
+                        if(mSetRandomWord != null){
+                            mSetRandomWord.execute();
+                        }
+                    } else {
+                        setFirstWordInList();
+                    }
 
+                Log.i(TAG, "Word list is: " + getWordListAsString());
             }
         });
     }
 
     private void saveWordList(){
-        try {
-            StringBuilder stringBuilder = new StringBuilder();
-            if(mWordList.size() != 0) {
-                for (String str : mWordList) {
-                    stringBuilder.append(str);
-                    stringBuilder.append(" ");
-                }
-                PreferenceManager.getDefaultSharedPreferences(this).edit().putString(SAVED_WORDS, stringBuilder.toString()).apply();
+//        try {
+//            StringBuilder stringBuilder = new StringBuilder();
+//            if(mWordList.size() != 0) {
+//                for (String str : mWordList) {
+//                    stringBuilder.append(str);
+//                    stringBuilder.append(" ");
+//                }
+//                PreferenceManager.getDefaultSharedPreferences(this).edit().putString(SAVED_WORDS, stringBuilder.toString()).apply();
+//            }
+//        } catch (NullPointerException e) {
+//            Log.e(TAG, "Failed to save words " + e);
+//            e.printStackTrace();
+//        }
+
+        String str = getWordListAsString();
+
+        if(str != null)
+        PreferenceManager.getDefaultSharedPreferences(this).edit().putString(SAVED_WORDS, str).apply();
+    }
+
+    private String getWordListAsString(){
+        StringBuilder stringBuilder = new StringBuilder();
+        if(mWordList.size() != 0) {
+            for (String str : mWordList) {
+                stringBuilder.append(str);
+                stringBuilder.append(" ");
             }
-        } catch (NullPointerException e) {
-            Log.e(TAG, "Failed to save words " + e);
-            e.printStackTrace();
+            return stringBuilder.toString();
         }
+        return null;
     }
 
     private void setFirstWordInList() {
@@ -87,39 +104,70 @@ public class ActivityRW extends AppCompatActivity {
         saveWordList();
     }
 
-    private GetRandomWord getRandomWordInstance(){
-        if(mGetRandomWord == null){
-            mGetRandomWord = new GetRandomWord();
-            return mGetRandomWord;
+    private fillWordList getFillWordListInstance(){
+        if(mFillWordList == null){
+            mFillWordList = new fillWordList();
+            return mFillWordList;
+        }
+        return null;
+    }
+
+    private setRandomWord getSetRandomWordInstance(){
+        if(mSetRandomWord == null){
+            mSetRandomWord = new setRandomWord();
+            return mSetRandomWord;
         }
         return null;
     }
 
 
-    private class GetRandomWord extends AsyncTask<Void, Void, String>{
+
+
+    private class fillWordList extends AsyncTask<Void, Void, Void>{
 
 
         @Override
-        protected String doInBackground(Void... voids) {
-            Log.i(TAG, "Task executing...");
+        protected Void doInBackground(Void... voids) {
+            Log.i(TAG, "Word-filling executing...");
             Random rand = new Random();
 
-            while(mWordList.size() <= 15){
+            while(mWordList.size() < 21){
                 mWordList.add(mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, getApplicationContext()));
+                saveWordList();
+                Log.i(TAG, "Word list is: " + getWordListAsString());
             }
+            
+            return null;
+        }
 
-            return mWordList.get(0);
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Log.i(TAG, "Word-filling finished!");
+            super.onPostExecute(aVoid);
+            mFillWordList = null;
+        }
+    }
+    
+    
+    private class setRandomWord extends AsyncTask <Void, Void, String>{
+
+        @Override
+        protected String doInBackground(Void... voids) {
+            Log.i(TAG, "Random-word setter executing...");
+            Random rand = new Random();
+            return mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, getApplicationContext());
         }
 
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            mGetRandomWord = null;
-            if(mDidntLoadFlag) {
-                setFirstWordInList();
-                mDidntLoadFlag = false;
-            }
+            mSetRandomWord = null;
+            mWordView.setText(s);
+            Log.i(TAG, "Random word setted: " + s);
         }
     }
+    
+    
 
 }
