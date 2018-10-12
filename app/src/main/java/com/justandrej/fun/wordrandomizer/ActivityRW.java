@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,7 +18,6 @@ import java.util.Random;
 public class ActivityRW extends AppCompatActivity {
 
     private static TextFileHelper mTextFileHelper;
-    private Button mNewWordButton;
     private TextView mWordView;
     private static final int TOTAL_WORDS = 362632;
     private static final String TAG = "MainActivity";
@@ -25,6 +25,8 @@ public class ActivityRW extends AppCompatActivity {
     private List<String> mWordList;
     private fillWordList mFillWordList;
     private setRandomWord mSetRandomWord;
+    private boolean mIsFillingWordList = false;
+    private boolean mIsWordViewSetting = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +36,7 @@ public class ActivityRW extends AppCompatActivity {
         mWordList = new ArrayList<>();
         mFillWordList = null;
         mSetRandomWord = null;
-        mNewWordButton = (Button)findViewById(R.id.button);
+        Button newWordButton = (Button) findViewById(R.id.button);
         mWordView = (TextView)findViewById(R.id.textView);
 
         String s = PreferenceManager.getDefaultSharedPreferences(this).getString(SAVED_WORDS, null);
@@ -43,7 +45,7 @@ public class ActivityRW extends AppCompatActivity {
             mWordList.addAll(Arrays.asList(arr));
         }
 
-        mNewWordButton.setOnClickListener(new View.OnClickListener() {
+        newWordButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -105,16 +107,16 @@ public class ActivityRW extends AppCompatActivity {
     }
 
     private fillWordList getFillWordListInstance(){
-        if(mFillWordList == null){
-            mFillWordList = new fillWordList();
+        if(!mIsFillingWordList){
+            mFillWordList = new fillWordList(this);
             return mFillWordList;
         }
         return null;
     }
 
     private setRandomWord getSetRandomWordInstance(){
-        if(mSetRandomWord == null){
-            mSetRandomWord = new setRandomWord();
+        if(!mIsWordViewSetting){
+            mSetRandomWord = new setRandomWord(this);
             return mSetRandomWord;
         }
         return null;
@@ -123,20 +125,34 @@ public class ActivityRW extends AppCompatActivity {
 
 
 
-    private class fillWordList extends AsyncTask<Void, Void, Void>{
+    private static class fillWordList extends AsyncTask<Void, Void, Void>{
 
+        private WeakReference <ActivityRW> mActivityRWWeakReference;
+
+        fillWordList(ActivityRW context){
+            mActivityRWWeakReference = new WeakReference<>(context);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mActivityRWWeakReference.get().mIsFillingWordList = true;
+        }
 
         @Override
         protected Void doInBackground(Void... voids) {
             Log.i(TAG, "Word-filling executing...");
+
+            ActivityRW activity = mActivityRWWeakReference.get();
+
             Random rand = new Random();
 
-            while(mWordList.size() < 21){
-                mWordList.add(mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, getApplicationContext()));
-                saveWordList();
-                Log.i(TAG, "Word list is: " + getWordListAsString());
+            while(activity.mWordList.size() < 21){
+                activity.mWordList.add(mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, activity));
+                activity.saveWordList();
+                Log.i(TAG, "Word list is: " + activity.getWordListAsString());
             }
-            
+
             return null;
         }
 
@@ -145,25 +161,43 @@ public class ActivityRW extends AppCompatActivity {
         protected void onPostExecute(Void aVoid) {
             Log.i(TAG, "Word-filling finished!");
             super.onPostExecute(aVoid);
-            mFillWordList = null;
+            ActivityRW activity = mActivityRWWeakReference.get();
+            activity.mIsFillingWordList = false;
+            mActivityRWWeakReference.clear();
         }
     }
     
     
-    private class setRandomWord extends AsyncTask <Void, Void, String>{
+    private static class setRandomWord extends AsyncTask <Void, Void, String>{
+
+        private WeakReference <ActivityRW> mActivityRWWeakReference;
+
+        setRandomWord(ActivityRW context){
+            mActivityRWWeakReference = new WeakReference<>(context);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mActivityRWWeakReference.get().mIsWordViewSetting = true;
+        }
 
         @Override
         protected String doInBackground(Void... voids) {
             Log.i(TAG, "Random-word setter executing...");
+
+            ActivityRW activity = mActivityRWWeakReference.get();
+
             Random rand = new Random();
-            return mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, getApplicationContext());
+            return mTextFileHelper.getWord(rand.nextInt(TOTAL_WORDS) + 1, activity);
         }
 
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            mSetRandomWord = null;
-            mWordView.setText(s);
+            ActivityRW activity = mActivityRWWeakReference.get();
+            activity.mIsWordViewSetting = false;
+            activity.mWordView.setText(s);
             Log.i(TAG, "Random word setted: " + s);
         }
     }
