@@ -1,4 +1,4 @@
-package com.justandrej.fun.wordrandomizer;
+package com.justandrej.fun.warwordrandomizer;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
