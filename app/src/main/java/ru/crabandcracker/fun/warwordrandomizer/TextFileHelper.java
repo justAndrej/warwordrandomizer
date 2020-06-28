@@ -1,4 +1,4 @@
-package com.justandrej.fun.warwordrandomizer;
+package ru.crabandcracker.fun.warwordrandomizer;
 
 import android.content.Context;
 import android.util.Log;
