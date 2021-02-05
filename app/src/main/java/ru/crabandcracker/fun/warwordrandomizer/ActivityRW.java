@@ -25,7 +25,7 @@ public class ActivityRW extends AppCompatActivity {
     private static final String SAVED_WORDS = "SavedWords";
     private List<String> mWordList;
     private fillWordList mFillWordList;
-    private setRandomWord mSetRandomWord;
+    private SetRandomWord mSetRandomWord;
     private boolean mIsFillingWordList = false;
     private boolean mIsWordViewSetting = false;
 
@@ -115,9 +115,9 @@ public class ActivityRW extends AppCompatActivity {
         return null;
     }
 
-    private setRandomWord getSetRandomWordInstance(){
-        if(!mIsWordViewSetting){
-            mSetRandomWord = new setRandomWord(this);
+    private SetRandomWord getSetRandomWordInstance() {
+        if (!mIsWordViewSetting) {
+            mSetRandomWord = new SetRandomWord(this);
             return mSetRandomWord;
         }
         return null;
@@ -167,13 +167,13 @@ public class ActivityRW extends AppCompatActivity {
             mActivityRWWeakReference.clear();
         }
     }
-    
-    
-    private static class setRandomWord extends AsyncTask <Void, Void, String>{
 
-        private WeakReference <ActivityRW> mActivityRWWeakReference;
 
-        setRandomWord(ActivityRW context){
+    private static class SetRandomWord extends AsyncTask<Void, Void, String> {
+
+        private WeakReference<ActivityRW> mActivityRWWeakReference;
+
+        SetRandomWord(ActivityRW context) {
             mActivityRWWeakReference = new WeakReference<>(context);
         }
 
